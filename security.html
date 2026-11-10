@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#060d1a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script>function levelFromScore(s){s=+s||0;return s>=15?'EKSTRIM':s>=10?'TINGGI':s>=5?'MENENGAH':'RENDAH';}</script>
+<script>function raiseLevel(l){var o=['RENDAH','MENENGAH','TINGGI','EKSTRIM'];var i=o.indexOf(l);return o[Math.min(3,Math.max(0,i)+1)];}function levelFromScore(s){s=+s||0;return s>=15?'EKSTRIM':s>=10?'TINGGI':s>=5?'MENENGAH':'RENDAH';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -895,7 +895,7 @@ function renderTrend(data) {
         afterLabel:function(ctx){
           if(ctx.dataIndex>=0&&data[ctx.dataIndex]&&data[ctx.dataIndex].score>0){
             var d=data[ctx.dataIndex],n=[];
-            if(d.incidentDesc)n.push(' ⚠ '+d.incidentDesc);
+            if(d.incidentDesc)n.push(' ⚠ '+d.incidentDesc+(d.nIsu>=2?'  ['+d.nIsu+' ISU]':'')+(d.esc?'  [ESKALASI]':''));
             return n;
           }return'';
         }
@@ -1033,7 +1033,9 @@ function renderTrend(data) {
   var incDetailArr = incRows.map(function(d){
     return '<strong style="color:var(--tinggi)">'+fmtShort(d.tanggal)+'</strong>: '+
       (d.incidentDesc||'Insiden tidak teridentifikasi')+
-      ' <span style="color:var(--muted)">[Score: '+d.score+']</span>';
+      ' <span style="color:var(--muted)">[Score: '+d.score+']</span>'+
+      (d.nIsu>=2?' <strong style="color:#ffb27a">['+d.nIsu+' ISU]</strong>':'')+
+      (d.esc?' <strong style="color:#ff6b6b">[▲ ESKALASI'+(d.escReason?': '+d.escReason:'')+']</strong>':'');
   });
   // Unique incident types
   var incTypeUniq = [];
@@ -1253,7 +1255,7 @@ function renderIntelData(intelArr){
     if(isIssue(d.ba))incDesc.push(d.ba+' (Bencana Alam)');
     var s=d.t.split('/');
     var dt=s.length===3?new Date(parseInt(s[2]),parseInt(s[1])-1,parseInt(s[0])):new Date(d.t);
-    return {_date:dt,tanggal:d.t,score:score,level:levelFromScore(score),levelSheet:d.lv||'',status:d.st||'',incidentCols:{'sosial politik':d.sp||'','sosial ekonomi':d.se||'','sosial budaya':d.sb||'','keamanan umum':d.ku||'','keamanan khusus':d.kk||'','bencana alam':d.ba||''},
+    return {_date:dt,tanggal:d.t,score:score,level:levelFromScore(score),nIsu:incDesc.length,esc:false,escReason:'',levelSheet:d.lv||'',status:d.st||'',incidentCols:{'sosial politik':d.sp||'','sosial ekonomi':d.se||'','sosial budaya':d.sb||'','keamanan umum':d.ku||'','keamanan khusus':d.kk||'','bencana alam':d.ba||''},
             kkScore:kkScore,kuScore:kuScore,speScore:speScore,
             kkKeyword:d.kk||'',kuKeyword:d.ku||'',
             incidentDesc:incDesc.join(' | ')};
@@ -1349,10 +1351,11 @@ function loadIntel(){
         if(colHasIssue(c.col)) incDescLabeled.push(c.col+' ('+c.label+')');
       });
 
+      var escRaw=getCol(row,headers,'eskalasi');var escOn=/naik|ya\b|yes/i.test(escRaw);
       data.push({
         _date:d, tanggal:tgl,
         score:score,
-        level:levelFromScore(score),levelSheet:getCol(row,headers,'level risiko')||getCol(row,headers,'level')||'',
+        level:(escOn?raiseLevel(levelFromScore(score)):levelFromScore(score)),nIsu:incDescLabeled.length,esc:escOn,escReason:getCol(row,headers,'alasan'),levelSheet:getCol(row,headers,'level risiko')||getCol(row,headers,'level')||'',
         status:getCol(row,headers,'status'),
         aksi:getCol(row,headers,'aksi')||'',
         kkScore:kkScore, kuScore:kuScore,
@@ -1669,7 +1672,7 @@ h3{font:800 17px 'Manrope',system-ui,sans-serif;letter-spacing:3px;text-transfor
 .inc .d span{display:block;font:700 14px/1 'Inter',system-ui,sans-serif;letter-spacing:2px;color:var(--muted)}
 .inc .t{font:700 22px/1.2 'Inter',system-ui,sans-serif;display:flex;align-items:center;gap:12px;white-space:nowrap}
 .inc .t em{display:inline-block;font:800 14px 'Inter',system-ui,sans-serif;letter-spacing:1.5px;font-style:normal;padding:2px 9px;border-radius:7px;border:1px solid}
-.inc .kkc{color:var(--kk);border-color:var(--kk)} .inc .kuc{color:var(--ku);border-color:var(--ku)}
+.inc .bdg{display:flex;align-items:center;gap:10px} .inc .t em.mi{border:1px solid #ffb27a;color:#ffb27a;padding:0 7px;border-radius:6px;font-size:12px;letter-spacing:1px} .inc .t em.mi.es{border-color:#ff6b6b;color:#ff6b6b} .inc .kkc{color:var(--kk);border-color:var(--kk)} .inc .kuc{color:var(--ku);border-color:var(--ku)}
 .inc .s{width:54px;height:54px;border-radius:50%;border:3px solid var(--amber);color:var(--amber);display:flex;align-items:center;justify-content:center;font:800 24px 'Manrope',system-ui,sans-serif}
 .inc .s.max{background:var(--amber);color:#1a1200}
 
@@ -2010,7 +2013,7 @@ function render(P){
  /* insiden terakhir */
  var lst='';
  if(!inc.length)lst='<div class="inc" style="grid-template-columns:1fr"><div class="t" style="color:var(--ok)">✔ Tidak ada insiden tercatat</div></div>';
- inc.slice(-6).reverse().forEach(function(i){var d=new Date(i.t);lst+='<div class="inc'+(NEWKEY!==null&&i.t===NEWKEY?' new':'')+'"><div class="d"><b>'+d.getDate()+'</b><span>'+MON[d.getMonth()]+'</span></div><div class="t"><span>'+esc(i.txt||'Insiden')+'</span><em class="'+(i.cat==='KK'?'kkc':'kuc')+'">'+CATN[i.cat]+'</em></div><div class="s'+(i.s===mx?' max':'')+'">'+i.s+'</div></div>';});
+ inc.slice(-6).reverse().forEach(function(i){var d=new Date(i.t);lst+='<div class="inc'+(NEWKEY!==null&&i.t===NEWKEY?' new':'')+'"><div class="d"><b>'+d.getDate()+'</b><span>'+MON[d.getMonth()]+'</span></div><div class="t"><span>'+esc(i.txt||'Insiden')+'</span><div class="bdg"><em class="'+(i.cat==='KK'?'kkc':'kuc')+'">'+CATN[i.cat]+'</em>'+(i.n>=2?'<em class="mi">'+i.n+' ISU</em>':'')+(i.e?'<em class="mi es">▲ ESKALASI</em>':'')+'</div></div><div class="s'+(i.s===mx?' max':'')+'">'+i.s+'</div></div>';});
  $('#inclist').innerHTML=lst;
 
  /* layar 2 */
@@ -2140,7 +2143,7 @@ window.TV={update:function(P){try{render(P);}catch(e){console.log('TV render err
         if(!txt && iss(d.kuKeyword)) txt = d.kuKeyword;
       }
       if(cat && !txt) txt = String(d.incidentDesc || '').split(' | ')[0].replace(/\s*\([^)]*\)\s*$/, '') || 'Insiden';
-      return { t: d._date.getTime(), s: d.score || 0, lv: levelFromScore(d.score), cat: cat, txt: String(txt).trim() };
+      return { t: d._date.getTime(), s: d.score || 0, lv: d.level || levelFromScore(d.score), n: d.nIsu || 0, e: d.esc ? 1 : 0, cat: cat, txt: String(txt).trim() };
     });
     var kw = window.__tvKwL || window.__tvKwS || { kk: [], ku: [] };
     return { rows: rows, kw: kw, live: !!window.__tvLiveData, sync: window.__tvSyncT || '' };
