@@ -1147,7 +1147,8 @@ function loadKeyword(){
   // ── Coba live update di background
   loadRows(GID_KEY,GS_KEYWORD).then(function(rows){
     var hi=-1;
-    for(var i=0;i<rows.length;i++){for(var j=0;j<rows[i].length;j++)if(/keyword/i.test(rows[i][j])){hi=i;break;}if(hi>=0)break;}
+    for(var i=0;i<rows.length;i++){for(var j=0;j<rows[i].length;j++)if(/^\s*keyword\s*$/i.test(rows[i][j])){hi=i;break;}if(hi>=0)break;}
+    if(hi<0){for(var i2=0;i2<rows.length;i2++){for(var j2=0;j2<rows[i2].length;j2++)if(/keyword/i.test(rows[i2][j2])){hi=i2;break;}if(hi>=0)break;}}
     if(hi<0)hi=0;
     var headers=rows[hi].map(function(h){return h.toLowerCase().trim();});
     var iKw=colIdx(headers,'keyword'),iSc=colIdx(headers,'score');
