@@ -646,12 +646,12 @@ body.tvon>*:not(#tvmode):not(#fs-pill):not(script):not(style){display:none !impo
 
 <script>
 // ═══ CONFIG ═══
-var GS_BASE    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1DVMfVkLBBjrmZXy8kicTN1vHXe0MqhStzgFtRT8zvrww0tEGivixRLgsHtoi3Q/pub';
+var GS_BASE    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdcEjSxl1kXrtHv8kfgs085XzUkQrSad6z1xv2zfYrW1kK_2dJVXnof952WW0MiRbv3DP3NOP3rRB_/pub';
 var GS_INTEL   = GS_BASE + '?gid=1554149070&single=true&output=csv';
 var GS_KEYWORD = GS_BASE + '?gid=255372722&single=true&output=csv';
 var GS_REK     = GS_BASE + '?gid=906733928&single=true&output=csv';
 // ID spreadsheet asli — untuk JSONP (bekerja dari file lokal tanpa CORS)
-var GS_ID  = '1tJe-_VbTa2VM43YNtOhTsTrlo6q6It5K';
+var GS_ID  = '1KEzeohuipcZFwidF7QM4IbQOw7kOlcHd5x96X28nk6g';
 var GID_INTEL = '1554149070';
 var GID_KEY   = '255372722';var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQ0jAhJFlXfSsmDFjmWfcMfFwyYNmqzGtQWMGz11J3bUHUYljhPzDhXTb4YYqnotsd/exec';
 
@@ -789,12 +789,10 @@ function jsonpLoad(gid){
 
 // ── loadRows: JSONP dulu (lokal friendly), fallback CSV proxy
 function loadRows(gid,csvUrl){
-  return fetchAppsScript(gid).catch(function(e){
-    console.warn('Apps Script gagal ('+e.message+'), coba JSONP...');
-    return jsonpLoad(gid).catch(function(e2){
-      console.warn('JSONP gagal ('+e2.message+'), fallback CSV proxy...');
-      return fetchData(csvUrl).then(function(csv){return parseCSV(csv);});
-    });
+  // Utama: tautan publikasi (sheet baru). Cadangan: Apps Script lama.
+  return fetchData(csvUrl).then(function(csv){return parseCSV(csv);}).catch(function(e){
+    console.warn('CSV publikasi gagal ('+e.message+'), coba JSONP...');
+    return jsonpLoad(gid).catch(function(){return fetchAppsScript(gid);});
   });
 }
 
